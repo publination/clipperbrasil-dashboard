@@ -178,15 +178,7 @@ footer.foot{max-width:1280px;margin:20px auto 40px;padding:0 28px;color:var(--mu
     </div>
 
     <div class="section">
-      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-        <strong style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;">Formato e tema — periodo:</strong>
-        <div class="period-filter" id="periodFilter">
-          <button class="period-btn active" data-days="0">Todo o periodo</button>
-          <button class="period-btn" data-days="30">Ultimos 30 dias</button>
-          <button class="period-btn" data-days="60">Ultimos 60 dias</button>
-          <button class="period-btn" data-days="90">Ultimos 90 dias</button>
-        </div>
-      </div>
+      <p class="page-sub" id="quarterNote" style="margin:0;"></p>
     </div>
 
     <div class="section grid grid-2">
@@ -212,7 +204,7 @@ footer.foot{max-width:1280px;margin:20px auto 40px;padding:0 28px;color:var(--mu
     </div>
 
     <div class="section">
-      <h2>Top 10 posts (jan–ago 2026)</h2>
+      <h2 id="top10Title">Top 10 posts</h2>
       <div class="chart-card">
         <table>
           <thead><tr><th>#</th><th>Post</th><th>Data</th><th>Formato</th><th>Tema</th><th>Curtidas</th><th>Coment.</th><th>Engaj.</th><th>Link</th></tr></thead>
@@ -365,76 +357,54 @@ new Chart(document.getElementById('chartMonth'), {
   options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{y:{ticks:{callback:v=>v+'%'}}} }
 });
 
-// ---------- by format & by theme (com filtro de periodo) ----------
-let chartFormatInstance, chartThemeInstance;
+// ---------- ultimo trimestre (formato, tema, top 10) ----------
+const refDate = new Date(DATA.generated_at);
+const refY = refDate.getFullYear(), refM = refDate.getMonth();
+const quarterStart = new Date(refY, refM-3, 1);
+const quarterEndDate = new Date(refY, refM, 0);
+const quarterStartStr = quarterStart.toISOString().slice(0,10);
+const quarterEndStr = quarterEndDate.toISOString().slice(0,10);
+const quarterPosts = DATA.posts.filter(function(p){ return p.date >= quarterStartStr && p.date <= quarterEndStr; });
+const monthNamesShort = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+const quarterLabel = monthNamesShort[quarterStart.getMonth()] + '/' + String(quarterStart.getFullYear()).slice(2) + ' a ' + monthNamesShort[quarterEndDate.getMonth()] + '/' + String(quarterEndDate.getFullYear()).slice(2);
+const quarterNoteEl = document.getElementById('quarterNote');
+if (quarterNoteEl) quarterNoteEl.textContent = 'Engajamento por formato, por tema e Top 10 consideram o ultimo trimestre (' + quarterLabel + '). Engajamento por mes mostra o periodo completo desde janeiro.';
+
 function computeByKey(posts, keyFn){
   const g = groupBy(posts, keyFn);
   return Object.keys(g).map(function(k){ return { key:k, n:g[k].length, avg: g[k].reduce(function(s,p){return s+p.eng_rate;},0)/g[k].length }; });
 }
-function renderFormatTheme(days){
-  const refDate = new Date(DATA.generated_at);
-  let posts = DATA.posts;
-  if (days > 0){
-    const cutoff = new Date(refDate); cutoff.setDate(cutoff.getDate()-days);
-    const cutoffStr = cutoff.toISOString().slice(0,10);
-    posts = DATA.posts.filter(function(p){ return p.date >= cutoffStr; });
-  }
-  const fmtRows = computeByKey(posts, function(p){return p.format;});
-  const fmtLabels = fmtRows.map(function(r){return r.key;});
-  const fmtData = fmtRows.map(function(r){return r.avg;});
-  const themeRows = computeByKey(posts, function(p){return p.theme;}).sort(function(a,b){return b.n-a.n;});
-  const themeLabels = themeRows.map(function(r){return r.key;});
-  const themeData = themeRows.map(function(r){return r.avg;});
-  const pctCB = function(v){ return v + '%'; };
-  if (!chartFormatInstance){
-    chartFormatInstance = new Chart(document.getElementById('chartFormat'), {
-      type:'bar',
-      data:{ labels: fmtLabels, datasets:[{ label:'Engajamento medio (%)', data: fmtData,
-        backgroundColor:['#F5EA1C','#A8790A','#6B46C1'], borderRadius:6 }]},
-      options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, indexAxis:'y', scales:{x:{ticks:{callback:pctCB}}} }
-    });
-  } else {
-    chartFormatInstance.data.labels = fmtLabels;
-    chartFormatInstance.data.datasets[0].data = fmtData;
-    chartFormatInstance.update();
-  }
-  if (!chartThemeInstance){
-    chartThemeInstance = new Chart(document.getElementById('chartTheme'), {
-      type:'bar',
-      data:{ labels: themeLabels, datasets:[{ label:'Engajamento medio (%)', data: themeData,
-        backgroundColor: themeLabels.map(function(_,i){return PALETTE[i%PALETTE.length];}), borderRadius:6 }]},
-      options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, indexAxis:'y', scales:{x:{ticks:{callback:pctCB}}} }
-    });
-  } else {
-    chartThemeInstance.data.labels = themeLabels;
-    chartThemeInstance.data.datasets[0].data = themeData;
-    chartThemeInstance.update();
-  }
-  document.querySelectorAll('.period-btn').forEach(function(b){ b.classList.toggle('active', +b.dataset.days === days); });
-}
-document.querySelectorAll('.period-btn').forEach(function(btn){
-  btn.addEventListener('click', function(){ renderFormatTheme(+btn.dataset.days); });
-});
-renderFormatTheme(0);
+const pctCB = function(v){ return v + '%'; };
 
-// ---------- by weekday ----------
-const wdNames = ["Segunda","Terça","Quarta","Quinta","Sexta","Sábado","Domingo"];
-const byWd = groupBy(DATA.posts, p=>p.weekday);
-new Chart(document.getElementById('chartWeekday'), {
+const fmtRows = computeByKey(quarterPosts, function(p){return p.format;});
+const fmtLabels = fmtRows.map(function(r){return r.key;});
+const fmtData = fmtRows.map(function(r){return r.avg;});
+new Chart(document.getElementById('chartFormat'), {
   type:'bar',
-  data:{ labels: wdNames, datasets:[{ label:'Engajamento médio (%)',
-    data: wdNames.map((_,i)=> byWd[i] ? byWd[i].reduce((s,p)=>s+p.eng_rate,0)/byWd[i].length : 0),
-    backgroundColor:'#A8790A', borderRadius:6 }]},
-  options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{y:{ticks:{callback:v=>v+'%'}}} }
+  data:{ labels: fmtLabels, datasets:[{ label:'Engajamento medio (%)', data: fmtData,
+    backgroundColor:['#F5EA1C','#A8790A','#6B46C1'], borderRadius:6 }]},
+  options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, indexAxis:'y', scales:{x:{ticks:{callback:pctCB}}} }
 });
 
-// ---------- top 10 ----------
-const top10 = [...DATA.posts].sort((a,b)=>b.engagement-a.engagement).slice(0,10);
+const themeRows = computeByKey(quarterPosts, function(p){return p.theme;}).sort(function(a,b){return b.n-a.n;});
+const themeLabels = themeRows.map(function(r){return r.key;});
+const themeData = themeRows.map(function(r){return r.avg;});
+new Chart(document.getElementById('chartTheme'), {
+  type:'bar',
+  data:{ labels: themeLabels, datasets:[{ label:'Engajamento medio (%)', data: themeData,
+    backgroundColor: themeLabels.map(function(_,i){return PALETTE[i%PALETTE.length];}), borderRadius:6 }]},
+  options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, indexAxis:'y', scales:{x:{ticks:{callback:pctCB}}} }
+});
+
+// ---------- top 10 (mesmo trimestre) ----------
+const top10 = [...quarterPosts].sort(function(a,b){return b.engagement-a.engagement;}).slice(0,10);
+const top10TitleEl = document.getElementById('top10Title');
+if (top10TitleEl) top10TitleEl.textContent = 'Top 10 posts (' + quarterLabel + ')';
 const top10Body = document.getElementById('top10Body');
-top10.forEach((p,i)=>{
+top10.forEach(function(p,i){
   const tr = document.createElement('tr');
-  const pillClass = p.format==='Reel'?'pill-reel':p.format==='Carrossel'?'pill-carrossel':'pill-imagem';
-  tr.innerHTML = `<td class="rank">${i+1}</td><td>${p.caption.slice(0,55)}${p.caption.length>55?'₦':''}</td>
+  const pillClass = p.format==='Reel' ? 'pill-reel' : (p.format==='Carrossel' ? 'pill-carrossel' : 'pill-imagem');
+  tr.innerHTML = `<td class="rank">${i+1}</td><td>${p.caption.slice(0,55)}${p.caption.length>55?'…':''}</td>
     <td>${fmtDate(p.date)}</td><td><span class="pill ${pillClass}">${p.format}</span></td><td>${p.theme}</td>
     <td>${p.likes.toLocaleString('pt-BR')}</td><td>${p.comments.toLocaleString('pt-BR')}</td>
     <td><strong>${p.engagement.toLocaleString('pt-BR')}</strong></td>
@@ -442,7 +412,6 @@ top10.forEach((p,i)=>{
   top10Body.appendChild(tr);
 });
 
-// ================= CALEND�RIO =================
 let calState = JSON.parse(localStorage.getItem('clipper_calendar') || '[]');
 function saveCal(){ localStorage.setItem('clipper_calendar', JSON.stringify(calState)); }
 
