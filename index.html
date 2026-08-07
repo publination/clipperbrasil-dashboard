@@ -66,6 +66,10 @@ p.page-sub{color:var(--muted);margin:0 0 22px;font-size:14px;}
 .section h2{font-size:16px;margin:0 0 14px;}
 .chart-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px 20px;}
 .chart-wrap{position:relative;height:280px;}
+.period-filter{display:flex;gap:6px;flex-wrap:wrap;}
+.period-btn{border:1px solid var(--border);background:#fff;color:var(--navy-2);font-weight:600;font-size:12px;padding:6px 12px;border-radius:999px;cursor:pointer;}
+.period-btn.active{background:var(--navy);color:#fff;border-color:var(--navy);}
+.period-btn:hover{border-color:var(--navy);}
 
 table{width:100%;border-collapse:collapse;font-size:13px;}
 th{text-align:left;color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;padding:8px 10px;border-bottom:1px solid var(--border);}
@@ -171,6 +175,18 @@ footer.foot{max-width:1280px;margin:20px auto 40px;padding:0 28px;color:var(--mu
     <div class="section">
       <h2>Crescimento de seguidores (semanal)</h2>
       <div class="chart-card"><div class="chart-wrap"><canvas id="chartFollowers"></canvas></div></div>
+    </div>
+
+    <div class="section">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <strong style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;">Formato e tema — periodo:</strong>
+        <div class="period-filter" id="periodFilter">
+          <button class="period-btn active" data-days="0">Todo o periodo</button>
+          <button class="period-btn" data-days="30">Ultimos 30 dias</button>
+          <button class="period-btn" data-days="60">Ultimos 60 dias</button>
+          <button class="period-btn" data-days="90">Ultimos 90 dias</button>
+        </div>
+      </div>
     </div>
 
     <div class="section grid grid-2">
@@ -349,27 +365,57 @@ new Chart(document.getElementById('chartMonth'), {
   options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{y:{ticks:{callback:v=>v+'%'}}} }
 });
 
-// ---------- by format ----------
-const byFormat = groupBy(DATA.posts, p=>p.format);
-const formatKeys = Object.keys(byFormat);
-new Chart(document.getElementById('chartFormat'), {
-  type:'bar',
-  data:{ labels: formatKeys, datasets:[{ label:'Engajamento médio (%)',
-    data: formatKeys.map(k=> byFormat[k].reduce((s,p)=>s+p.eng_rate,0)/byFormat[k].length),
-    backgroundColor:['#F5EA1C','#A8790A','#6B46C1'], borderRadius:6 }]},
-  options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, indexAxis:'y', scales:{x:{ticks:{callback:v=>v+'%'}}} }
+// ---------- by format & by theme (com filtro de periodo) ----------
+let chartFormatInstance, chartThemeInstance;
+function computeByKey(posts, keyFn){
+  const g = groupBy(posts, keyFn);
+  return Object.keys(g).map(function(k){ return { key:k, n:g[k].length, avg: g[k].reduce(function(s,p){return s+p.eng_rate;},0)/g[k].length }; });
+}
+function renderFormatTheme(days){
+  const refDate = new Date(DATA.generated_at);
+  let posts = DATA.posts;
+  if (days > 0){
+    const cutoff = new Date(refDate); cutoff.setDate(cutoff.getDate()-days);
+    const cutoffStr = cutoff.toISOString().slice(0,10);
+    posts = DATA.posts.filter(function(p){ return p.date >= cutoffStr; });
+  }
+  const fmtRows = computeByKey(posts, function(p){return p.format;});
+  const fmtLabels = fmtRows.map(function(r){return r.key;});
+  const fmtData = fmtRows.map(function(r){return r.avg;});
+  const themeRows = computeByKey(posts, function(p){return p.theme;}).sort(function(a,b){return b.n-a.n;});
+  const themeLabels = themeRows.map(function(r){return r.key;});
+  const themeData = themeRows.map(function(r){return r.avg;});
+  const pctCB = function(v){ return v + '%'; };
+  if (!chartFormatInstance){
+    chartFormatInstance = new Chart(document.getElementById('chartFormat'), {
+      type:'bar',
+      data:{ labels: fmtLabels, datasets:[{ label:'Engajamento medio (%)', data: fmtData,
+        backgroundColor:['#F5EA1C','#A8790A','#6B46C1'], borderRadius:6 }]},
+      options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, indexAxis:'y', scales:{x:{ticks:{callback:pctCB}}} }
+    });
+  } else {
+    chartFormatInstance.data.labels = fmtLabels;
+    chartFormatInstance.data.datasets[0].data = fmtData;
+    chartFormatInstance.update();
+  }
+  if (!chartThemeInstance){
+    chartThemeInstance = new Chart(document.getElementById('chartTheme'), {
+      type:'bar',
+      data:{ labels: themeLabels, datasets:[{ label:'Engajamento medio (%)', data: themeData,
+        backgroundColor: themeLabels.map(function(_,i){return PALETTE[i%PALETTE.length];}), borderRadius:6 }]},
+      options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, indexAxis:'y', scales:{x:{ticks:{callback:pctCB}}} }
+    });
+  } else {
+    chartThemeInstance.data.labels = themeLabels;
+    chartThemeInstance.data.datasets[0].data = themeData;
+    chartThemeInstance.update();
+  }
+  document.querySelectorAll('.period-btn').forEach(function(b){ b.classList.toggle('active', +b.dataset.days === days); });
+}
+document.querySelectorAll('.period-btn').forEach(function(btn){
+  btn.addEventListener('click', function(){ renderFormatTheme(+btn.dataset.days); });
 });
-
-// ---------- by theme ----------
-const byTheme = groupBy(DATA.posts, p=>p.theme);
-const themeKeys = Object.keys(byTheme).sort((a,b)=> (byTheme[b].length)-(byTheme[a].length));
-new Chart(document.getElementById('chartTheme'), {
-  type:'bar',
-  data:{ labels: themeKeys, datasets:[{ label:'Engajamento médio (%)',
-    data: themeKeys.map(k=> byTheme[k].reduce((s,p)=>s+p.eng_rate,0)/byTheme[k].length),
-    backgroundColor: themeKeys.map((_,i)=>PALETTE[i%PALETTE.length]), borderRadius:6 }]},
-  options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, indexAxis:'y', scales:{x:{ticks:{callback:v=>v+'%'}}} }
-});
+renderFormatTheme(0);
 
 // ---------- by weekday ----------
 const wdNames = ["Segunda","Terça","Quarta","Quinta","Sexta","Sábado","Domingo"];
