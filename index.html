@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Clipper Brasil — Dashboard Social</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<style>
+:root{
+  color-scheme: light;
+  --navy:#150F26;
+  --navy-2:#1A1330;
+  --yellow:#F5EA1C;
+  --gold:#A8790A;
+  --muted:#6B6280;
+  --border:#E5E5EA;
+  --bg:#F7F7FA;
+  --card:#FFFFFF;
+  --green:#1E9E5A;
+  --red:#D6473C;
+  --tag-purple-bg:#EDE9FE;
+  --tag-purple-fg:#6B46C1;
+  --tag-orange-bg:#FFE9D6;
+  --tag-orange-fg:#B45309;
+  --font: -apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+*{box-sizing:border-box;}
+body{margin:0;font-family:var(--font);background:var(--bg);color:var(--navy-2);}
+header.topbar{
+  background:var(--navy);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 28px;position:sticky;top:0;z-index:50;
+}
+.logo{font-weight:800;font-size:20px;letter-spacing:.5px;color:#fff;}
+.logo span{color:var(--yellow);}
+nav.tabs{display:flex;gap:8px;}
+nav.tabs button{
+  border:none;background:transparent;color:#cfc9dc;font-weight:600;font-size:14px;
+  padding:9px 18px;border-radius:999px;cursor:pointer;transition:.15s;
+}
+nav.tabs button:hover{color:#fff;}
+nav.tabs button.active{background:var(--yellow);color:#141019;}
+.topbar-right{color:#a89fc2;font-size:13px;display:flex;align-items:center;gap:14px;}
+main{max-width:1280px;margin:0 auto;padding:28px;}
+.tabpanel{display:none;}
+.tabpanel.active{display:block;}
+
+h1.page-title{font-size:22px;margin:0 0 4px;}
+p.page-sub{color:var(--muted);margin:0 0 22px;font-size:14px;}
+
+.grid{display:grid;gap:16px;}
+.grid-4{grid-template-columns:repeat(4,1fr);}
+.grid-3{grid-template-columns:repeat(3,1fr);}
+.grid-2{grid-template-columns:repeat(2,1fr);}
+@media(max-width:1000px){.grid-4{grid-template-columns:repeat(2,1fr);}.grid-3{grid-template-columns:repeat(2,1fr);}.grid-2{grid-template-columns:1fr;}}
+
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px 20px;}
+.card .label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;font-weight:600;}
+.card .value{font-size:26px;font-weight:800;color:var(--gold);margin-top:6px;}
+.card .value.ok{color:var(--green);}
+.card .value.warn{color:var(--red);}
+.card .sub{font-size:12px;color:var(--muted);margin-top:4px;}
+.card .bench{font-size:11px;color:var(--muted);margin-top:8px;padding-top:8px;border-top:1px dashed var(--border);}
+
+.section{margin-top:28px;}
+.section h2{font-size:16px;margin:0 0 14px;}
+.chart-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px 20px;}
+.chart-wrap{position:relative;height:280px;}
+
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th{text-align:left;color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;padding:8px 10px;border-bottom:1px solid var(--border);}
+td{padding:10px;border-bottom:1px solid var(--border);}
+tr:last-child td{border-bottom:none;}
+.pill{display:inline-block;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:700;}
+.pill-reel{background:var(--tag-purple-bg);color:var(--tag-purple-fg);}
+.pill-carrossel{background:var(--tag-orange-bg);color:var(--tag-orange-fg);}
+.pill-imagem{background:#E6F4EA;color:var(--green);}
+a.postlink{color:var(--navy-2);font-weight:600;text-decoration:none;}
+a.postlink:hover{text-decoration:underline;}
+.rank{color:var(--gold);font-weight:800;width:22px;display:inline-block;}
+
+/* Calendar */
+.cal-header{display:flex;align-items:center;gap:14px;margin-bottom:18px;}
+.cal-nav-btn{border:1px solid var(--border);background:#fff;border-radius:8px;width:32px;height:32px;cursor:pointer;font-size:15px;}
+.cal-title{font-size:20px;font-weight:800;}
+.cal-today-btn{margin-left:auto;background:var(--yellow);border:none;padding:8px 16px;border-radius:8px;font-weight:700;cursor:pointer;}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;}
+.cal-dow{text-align:center;font-size:11px;font-weight:700;color:var(--muted);padding-bottom:6px;text-transform:uppercase;}
+.cal-cell{background:#fff;border:1px solid var(--border);border-radius:10px;min-height:104px;padding:8px;position:relative;}
+.cal-cell.other-month{background:#FAFAFB;color:#c8c4d4;}
+.cal-cell.today{border-color:var(--yellow);border-width:2px;}
+.cal-daynum{font-size:13px;font-weight:700;display:flex;justify-content:space-between;align-items:center;}
+.cal-add{border:none;background:var(--bg);color:var(--muted);width:20px;height:20px;border-radius:6px;cursor:pointer;font-weight:700;}
+.cal-add:hover{background:var(--yellow);color:#141019;}
+.cal-chip{margin-top:6px;font-size:11px;padding:4px 6px;border-radius:6px;background:#EDE9FE;color:#3d3457;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border-left:3px solid #6B46C1;}
+.cal-chip.status-rascunho{background:#F1F1F4;border-color:#9b93ad;}
+.cal-chip.status-aprovado{background:#FFE9D6;border-color:#B45309;}
+.cal-chip.status-pronto{background:#DCEEFB;border-color:#1E6FA8;}
+.cal-chip.status-publicado{background:#E6F4EA;border-color:#1E9E5A;}
+
+/* modal */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(20,16,25,.5);z-index:100;align-items:center;justify-content:center;}
+.modal-bg.open{display:flex;}
+.modal{background:#fff;border-radius:14px;padding:24px;width:420px;max-width:92vw;max-height:88vh;overflow:auto;}
+.modal h3{margin:0 0 16px;font-size:17px;}
+.field{margin-bottom:14px;}
+.field label{display:block;font-size:12px;font-weight:700;color:var(--muted);margin-bottom:5px;text-transform:uppercase;}
+.field input,.field select,.field textarea{width:100%;padding:9px 10px;border:1px solid var(--border);border-radius:8px;font-family:var(--font);font-size:13px;}
+.field textarea{min-height:60px;resize:vertical;}
+.modal-actions{display:flex;justify-content:space-between;margin-top:18px;gap:8px;}
+.btn{padding:9px 16px;border-radius:8px;border:1px solid var(--border);background:#fff;font-weight:700;font-size:13px;cursor:pointer;}
+.btn-primary{background:var(--yellow);border-color:var(--yellow);color:#141019;}
+.btn-danger{background:#fff;color:var(--red);border-color:var(--red);}
+
+/* results tab */
+.res-toolbar{display:flex;align-items:center;gap:12px;margin-bottom:18px;}
+.res-toolbar select{padding:8px 12px;border-radius:8px;border:1px solid var(--border);font-family:var(--font);font-weight:700;}
+.res-toolbar .btn-primary{margin-left:auto;}
+input.cell-input{width:100%;border:1px solid transparent;background:transparent;padding:5px 6px;border-radius:6px;font-family:var(--font);font-size:13px;}
+input.cell-input:hover,input.cell-input:focus{border-color:var(--border);background:#fafafa;outline:none;}
+.del-btn{border:none;background:transparent;color:var(--red);cursor:pointer;font-size:15px;}
+.note{font-size:12px;color:var(--muted);margin-top:14px;}
+footer.foot{max-width:1280px;margin:20px auto 40px;padding:0 28px;color:var(--muted);font-size:12px;}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="logo">CLIP<span>PER</span> <span style="color:#a89fc2;font-weight:600;font-size:13px;">social</span></div>
+  <nav class="tabs">
+    <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
+    <button class="tab-btn" data-tab="calendario">Calendário</button>
+    <button class="tab-btn" data-tab="resultados">Resultados</button>
+  </nav>
+  <div class="topbar-right">
+    <span id="lastUpdate">—</span>
+  </div>
+</header>
+
+<main>
+
+  <!-- TAB 1: DASHBOARD -->
+  <section id="tab-dashboard" class="tabpanel active">
+    <h1 class="page-title">Saudabilidade do perfil @clipperbrasil</h1>
+    <p class="page-sub">Dados oficiais do Instagram Insights · jan/2026 até <span id="periodEnd"></span></p>
+
+    <div class="grid grid-4">
+      <div class="card">
+        <div class="label">Taxa de engajamento média</div>
+        <div class="value" id="kpiEng">—</div>
+        <div class="sub" id="kpiEngSub"></div>
+        <div class="bench" id="kpiEngBench"></div>
+      </div>
+      <div class="card">
+        <div class="label">Alcance de Reels (views)</div>
+        <div class="value" id="kpiReels">—</div>
+        <div class="sub">participação de Reels nas visualizações da conta (90 dias)</div>
+      </div>
+      <div class="card">
+        <div class="label">Frequência de posts</div>
+        <div class="value" id="kpiFreq">—</div>
+        <div class="sub" id="kpiFreqSub"></div>
+      </div>
+      <div class="card">
+        <div class="label">Seguidores</div>
+        <div class="value" id="kpiFollowers">—</div>
+        <div class="sub">baseline registrado hoje — cresce 1 ponto/semana</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>Crescimento de seguidores (semanal)</h2>
+      <div class="chart-card"><div class="chart-wrap"><canvas id="chartFollowers"></canvas></div></div>
+    </div>
+
+    <div class="section grid grid-2">
+      <div>
+        <h2>Engajamento por mês</h2>
+        <div class="chart-card"><div class="chart-wrap"><canvas id="chartMonth"></canvas></div></div>
+      </div>
+      <div>
+        <h2>Engajamento por formato</h2>
+        <div class="chart-card"><div class="chart-wrap"><canvas id="chartFormat"></canvas></div></div>
+      </div>
+    </div>
+
+    <div class="section grid grid-2">
+      <div>
+        <h2>Engajamento por tema</h2>
+        <div class="chart-card"><div class="chart-wrap"><canvas id="chartTheme"></canvas></div></div>
+      </div>
+      <div>
+        <h2>Engajamento por dia da semana</h2>
+        <div class="chart-card"><div class="chart-wrap"><canvas id="chartWeekday"></canvas></div></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>Top 10 posts (jan–ago 2026)</h2>
+      <div class="chart-card">
+        <table>
+          <thead><tr><th>#</th><th>Post</th><th>Data</th><th>Formato</th><th>Tema</th><th>Curtidas</th><th>Coment.</th><th>Engaj.</th><th>Link</th></tr></thead>
+          <tbody id="top10Body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <p class="note" id="dataNote"></p>
+  </section>
+
+  <!-- TAB 2: CALENDARIO -->
+  <section id="tab-calendario" class="tabpanel">
+    <h1 class="page-title">Calendário de posts</h1>
+    <p class="page-sub">Planejamento mensal — salvo neste navegador.</p>
+    <div class="cal-header">
+      <button class="cal-nav-btn" id="calPrev">‹</button>
+      <div class="cal-title" id="calTitle">—</div>
+      <button class="cal-nav-btn" id="calNext">›</button>
+      <button class="cal-today-btn" id="calToday">Hoje</button>
+    </div>
+    <div class="cal-grid" id="calDow"></div>
+    <div class="cal-grid" id="calGrid" style="margin-top:8px;"></div>
+  </section>
+
+  <!-- TAB 3: RESULTADOS -->
+  <section id="tab-resultados" class="tabpanel">
+    <h1 class="page-title">Resultados semanais</h1>
+    <p class="page-sub">Adicione aqui os posts publicados a cada semana com os números reais do Instagram.</p>
+
+    <div class="grid grid-4" id="resSummary"></div>
+
+    <div class="section chart-card">
+      <div class="res-toolbar">
+        <strong>Posts</strong>
+        <button class="btn btn-primary" id="addResultBtn">+ Adicionar post</button>
+      </div>
+      <table>
+        <thead><tr>
+          <th style="min-width:160px;">Post</th><th>Data</th><th>Views</th><th>Curtidas</th><th>Coment.</th>
+          <th>Reposts</th><th>Envios</th><th>Compart.</th><th>Salvam.</th><th></th>
+        </tr></thead>
+        <tbody id="resultsBody"></tbody>
+      </table>
+    </div>
+    <p class="note">Os dados desta aba ficam salvos localmente neste navegador (localStorage). A atualização automática semanal só recalcula a aba Dashboard com dados novos do Instagram Insights.</p>
+  </section>
+
+</main>
+
+<footer class="foot">Clipper Brasil · dashboard gerado automaticamente a partir do Instagram Insights · atualização semanal toda segunda às 9h</footer>
+
+<!-- MODAL: novo post calendário -->
+<div class="modal-bg" id="calModalBg">
+  <div class="modal">
+    <h3 id="calModalTitle">Novo post</h3>
+    <div class="field"><label>Título</label><input type="text" id="fTitle"></div>
+    <div class="field"><label>Data prevista</label><input type="date" id="fDate"></div>
+    <div class="field"><label>Status</label>
+      <select id="fStatus"><option value="rascunho">Rascunho</option><option value="aprovado">Aprovado</option><option value="pronto">Pronto</option><option value="publicado">Publicado</option></select>
+    </div>
+    <div class="field"><label>Formato</label>
+      <select id="fFormat"><option>Feed</option><option>Reels</option><option>Stories</option><option>Carrossel</option></select>
+    </div>
+    <div class="field"><label>Notas</label><textarea id="fNotes"></textarea></div>
+    <div class="modal-actions">
+      <button class="btn btn-danger" id="fDelete" style="display:none;">Excluir</button>
+      <span style="flex:1;"></span>
+      <button class="btn" id="fCancel">Cancelar</button>
+      <button class="btn btn-primary" id="fSave">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<script id="dashboard-data" type="application/json">{"generated_at": "2026-08-07", "account": {"username": "clipperbrasil", "followers": 14405, "posts_total_lifetime": 209, "following": 112}, "insights_30d": {"views": 94541, "followers_pct": 59.1, "nonfollowers_pct": 40.9, "viewers": 8670, "views_by_type": {"reels": 45.3, "stories": 33.9, "posts": 20.7}, "interactions": 3636, "interactions_followers_pct": 77.1, "interactions_nonfollowers_pct": 22.9, "accounts_engaged": 1312, "interactions_by_type": {"posts": 55.4, "reels": 32.2, "stories": 12.4}, "profile_activity": 2029, "profile_visits": 1698, "link_taps": 331}, "insights_90d": {"views": 183893, "followers_pct": 66.3, "nonfollowers_pct": 33.7, "viewers": 15292, "views_by_type": {"stories": 43.2, "reels": 39.5, "posts": 17.3}, "interactions": 7054, "interactions_followers_pct": 83.2, "interactions_nonfollowers_pct": 16.8, "accounts_engaged": 2082, "interactions_by_type": {"posts": 62.2, "reels": 26.1, "stories": 11.7}, "profile_activity": 5631, "profile_visits": 4595, "link_taps": 1036}, "benchmark": {"engagement_rate_range": [2.0, 5.0], "engagement_rate_good": 3.0, "engagement_rate_avg_tier": 3.5, "tier_label": "Contas 10k-50k seguidores", "source": "IQFluence / Poppify / Virallized, 2026"}, "follower_history": [{"date": "2026-08-07", "followers": 14405}], "posts": [{"code": "Dbtl7vXCXJ6", "date": "2026-08-06", "likes": 50, "comments": 18, "views": 1885, "media_type": 8, "product_type": "carousel_container", "carousel_count": null, "caption": "ATENÇÃO PAIS CLIPPEIROS - Dia dos Pais, sorteio kit Clipper", "format": "Carrossel", "theme": "Promoção/Sorteio", "engagement": 68, "weekday": 3, "eng_rate": 0.472, "link": "https://www.instagram.com/p/Dbtl7vXCXJ6/"}, {"code": "DbswmlbxZIv", "date": "2026-08-06", "likes": 57, "comments": 8, "views": null, "media_type": 2, "product_type": "clips", "carousel_count": null, "caption": "[collab fiscaldebeck/papelito] Ja garanti o meu, então corre antes que acaba - publi papelito clipper", "format": "Reel", "theme": "Lançamento/Coleção", "engagement": 65, "weekday": 3, "eng_rate": 0.451, "link": "https://www.instagram.com/p/DbswmlbxZIv/"}, {"code": "DboLfj7CbA4", "date": "2026-08-04", "likes": 65, "comments": 15, "views": null, "media_type": 8, "product_type": "carousel_container", "carousel_count": null, "caption": "A gente nem conhece seu pai, mas temos certeza que ele escolheria um desses - Dia dos Pais", "format": "Carrossel", "theme": "Promoção/Sorteio", "engagement": 80, "weekday": 1, "eng_rate": 0.555, "link": "https://www.instagram.com/p/DboLfj7CbA4/"}, {"code": "DbI79LHpp4H", "date": "2026-07-23", "likes": 542, "comments": 100, "views": null, "media_type": 2, "product_type": "clips", "carousel_count": null, "caption": "[collab papelito.reserva] tem lançamento que acaba virando coleção - collab quente do ano", "format": "Reel", "theme": "Lançamento/Coleção", "engagement": 642, "weekday": 3, "eng_rate": 4.457, "link": "https://www.instagram.com/p/DbI79LHpp4H/"}, {"code": "Da0qdtbJ7DC", "date": "2026-07-15", "likes": 43, "comments": 10, "views": null, "media_type": 1, "product_type": "feed", "carousel_count": null, "caption": "Qual decisão o Clipperman deve tomar hoje?   Deixamos essa resposta co", "format": "Imagem", "theme": "Enquete/Interação", "engagement": 53, "weekday": 2, "eng_rate": 0.368, "link": "https://www.instagram.com/p/Da0qdtbJ7DC/"}, {"code": "DayzTEfNuaK", "date": "2026-07-15", "likes": 16, "comments": 2, "views": null, "media_type": 1, "product_type": "feed", "carousel_count": null, "caption": "O Clipperman não prometeu respostas. Só prometeu opiniões. 👇 Qual dev", "format": "Imagem", "theme": "Enquete/Interação", "engagement": 18, "weekday": 2, "eng_rate": 0.125, "link": "https://www.instagram.com/p/DayzTEfNuaK/"}, {"code": "DanpPf_EXMe", "date": "2026-07-10", "likes": 182, "comments": 20, "views": null, "media_type": 8, "product_type": "carousel_container", "carousel_count": 4, "caption": "🚨Alerta Dinâmica   Preciso que vocês sejam extremamente x9 agora. o i", "format": "Carrossel", "theme": "Enquete/Interação", "engagement": 202, "weekday": 4, "eng_rate": 1.402, "link": "https://www.instagram.com/p/DanpPf_EXMe/"}, {"code": "DagbUZ9D8Zl", "date": "2026-07-07", "likes": 93, "comments": 12, "views": null, "media_type": 8, "product_type": "carousel_container", "carousel_count": 10, "caption": "Não estamos perguntando qual é o mais bonito. Estamos perguntando qual", "format": "Carrossel", "theme": "Enquete/Interação", "engagement": 105, "weekday": 1, "eng_rate": 0.729, "link": "https://www.instagram.com/p/DagbUZ9D8Zl/"}, {"code": "DaWFxyZP4xf", "date": "2026-07-05", "likes": 43, "comments": 5, "views": null, "media_type": 1, "product_type": "feed", "carousel_count": null, "caption": "URGENTE! Vazou a foto do clipperman durante a pausa para a hidratação.", "format": "Imagem", "theme": "Humor/ClipperMan", "engagement": 48, "weekday": 6, "eng_rate": 0.333, "link": "https://www.instagram.com/p/DaWFxyZP4xf/"}, {"code": "DaTjCltD9Ed", "date": "2026-07-02", "likes": 43, "comments": 4, "views": null, "media_type": 8, "product_type": "carousel_container", "carousel_count": 4, "caption": "Inglaterra, França e Uruguai  A gente não tá incentivando ninguém pega", "format": "Carrossel", "theme": "Copa & Datas especiais", "engagement": 47, "weekday": 3, "eng_rate": 0.326, "link": "https://www.instagram.com/p/DaTjCltD9Ed/"}, {"code": "DaLSJwJxN5o", "date": "2026-06-29", "likes": 40, "comments": 3, "views": null, "media_type": 2, "product_type": "clips", "carousel_count": null, "caption": "Hoje é dia de goleadaaa 🇧🇷  E tá rolando dinâmica também no grupo de", "format": "Reel", "theme": "Copa & Datas especiais", "engagement": 43, "weekday": 0, "eng_rate": 0.299, "link": "https://www.instagram.com/p/DaLSJwJxN5o/"}, {"code": "DZ-ztxkjzIc", "date": "2026-06-24", "likes": 46, "comments": 3, "views": null, "media_type": 8, "product_type": "carousel_container", "carousel_count": 4, "caption": "Queremos saber, pro jogo de hoje quem é você? E o que não pode faltar?", "format": "Carrossel", "theme": "Copa & Datas especiais", "engagement": 49, "weekday": 2, "eng_rate": 0.34, "link": "https://www.instagram.com/p/DZ-ztxkjzIc/"}, {"code": "DZ5wF8uPpX9", "date": "2026-06-22", "likes": 101, "comments": 7, "views": null, "media_type": 2, "product_type": "clips", "carousel_count": null, "caption": "Os escalados já estão em campo. 🇧🇷⚽  Esses são alguns dos modelos da", "format": "Reel", "theme": "Copa & Datas especiais", "engagement": 108, "weekday": 0, "eng_rate": 0.75, "link": "https://www.instagram.com/p/DZ5wF8uPpX9/"}, {"code": "DZvfAYyvFuD", "date": "2026-06-18", "likes": 31, "comments": 0, "views": null, "media_type": 1, "product_type": "feed", "carousel_count": null, "caption": "É amanhã, família!   Nosso Brasil entra em campo rumo ao hexa.   Como", "format": "Imagem", "theme": "Copa & Datas especiais", "engagement": 31, "weekday": 3, "eng_rate": 0.215, "link": "https://www.instagram.com/p/DZvfAYyvFuD/"}, {"code": "DZqVpuSD3JQ", "date": "2026-06-16", "likes": 284, "comments": 18, "views": null, "media_type": 8, "product_type": "carousel_container", "carousel_count": 5, "caption": "Tem coleção que a gente protege a qualquer custo.  E tem aquelas peças", "format": "Carrossel", "theme": "Lançamento/Coleção", "engagement": 302, "weekday": 1, "eng_rate": 2.096, "link": "https://www.instagram.com/p/DZqVpuSD3JQ/"}, {"code": "DZay-jHidTR", "date": "2026-06-10", "likes": 327, "comments": 22, "views": null, "media_type": 8, "product_type": "carousel_container", "carousel_count": 4, "caption": "Acabou o mistério, clippeiros.   Chegaram os Escalados de Junho. E tem", "format": "Carrossel", "theme": "Lançamento/Coleção", "engagement": 349, "weekday": 2, "eng_rate": 2.423, "link": "https://www.instagram.com/p/DZay-jHidTR/"}, {"code": "DZLdER0CZtL", "date": "2026-06-04", "likes": 67, "comments": 3, "views": null, "media_type": 8, "product_type": "carousel_container", "carousel_count": 4, "caption": "Nessa manhã, SP acordou com cartazes nos muros com as necessidades bás", "format": "Carrossel", "theme": "Institucional/Outros", "engagement": 70, "weekday": 3, "eng_rate": 0.486, "link": "https://www.instagram.com/p/DZLdER0CZtL/"}, {"code": "DZInjN5JbHB", "date": "2026-06-03", "likes": 24, "comments": 5, "views": null, "media_type": 1, "product_type": "feed", "carousel_count": null, "caption": "Junho chegou e ninguém tá preparado.   Nem pra Copa, nem pro arraial,", "format": "Imagem", "theme": "Copa & Datas especiais", "engagement": 29, "weekday": 2, "eng_rate": 0.201, "link": "https://www.instagram.com/p/DZInjN5JbHB/"}, {"code": "DY7iiJTRYNf", "date": "2026-05-29", "likes": 109, "comments": 7, "views": null, "media_type": 2, "product_type": "clips", "carousel_count": null, "caption": "O barulhinho que todo clippeiro ama 😎", "format": "Reel", "theme": "Institucional/Outros", "engagement": 116, "weekday": 4, "eng_rate": 0.805, "link": "https://www.instagram.com/p/DY7iiJTRYNf/"}, {"code": "DY2yw5aD3OT", "date": "2026-05-27", "likes": 62, "comments": 5, "views": null, "media_type": 8, "product_type": "carousel_container", "carousel_count": 4, "caption": "Família, uma pergunta aqui pro meu tcc rapidão…  Nas últimas semanas d", "format": "Carrossel", "theme": "Enquete/Interação", "engagement": 67, "weekday": 2, "eng_rate": 0.465, "link": "https://www.instagram.com/p/DY2yw5aD3OT/"}, {"code": "DYncyH4xFOU", "date": "2026-05-21", "likes": 51, "comments": 11, "views": null, "media_type": 2, "product_type": "clips", "carousel_count": null, "caption": "É família, com Clipper não dá pra vacilar 😒  Apostas de quem pegou o", "format": "Reel", "theme": "Enquete/Interação", "engagement": 62, "weekday": 3, "eng_rate": 0.43, "link": "https://www.instagram.com/p/DYncyH4xFOU/"}, {"code": "DYiNSwSDzdW", "date": "2026-05-19", "likes": 132, "comments": 1, "views": null, "media_type": 8, "product_type": "carousel_container", "carousel_count": 5, "caption": "Vocês sabem o que um foguete, uma lâmpada, um lápis e um alvo têm em c", "format": "Carrossel", "theme": "Enquete/Interação", "engagement": 133, "weekday": 1, "eng_rate": 0.923, "link": "https://www.instagram.com/p/DYiNSwSDzdW/"}, {"code": "DYVUyGxv723", "date": "2026-05-14", "likes": 37, "comments": 2, "views": null, "media_type": 2, "product_type": "clips", "carousel_count": null, "caption": "Família, é assim que se trata rato, entendeu? 😂", "format": "Reel", "theme": "Humor/ClipperMan", "engagement": 39, "weekday": 3, "eng_rate": 0.271, "link": "https://www.instagram.com/p/DYVUyGxv723/"}, {"code": "DYQCrEtjyRT", "date": "2026-05-12", "likes": 238, "comments": 6, "views": null, "media_type": 8, "product_type": "carousel_container", "carousel_count": 7, "caption": "Mais uma coleção chegando pra completar a sua prateleira. 😎  E dessa", "format": "Carrossel", "theme": "Lançamento/Coleção", "engagement": 244, "weekday": 1, "eng_rate": 1.694, "link": "https://www.instagram.com/p/DYQCrEtjyRT/"}, {"code": "DYF6cTXBYt1", "date": "2026-05-08", "likes": 32, "comments": 0, "views": null, "media_type": 2, "product_type": "clips", "carousel_count": null, "caption": "Sabemos que os ratos adoram qualquer Clipper, mas essa coleção em espe", "format": "Reel", "theme": "Lançamento/Coleção", "engagement": 32, "weekday": 4, "eng_rate": 0.222, "link": "https://www.instagram.com/p/DYF6cTXBYt1/"}, {"code": "DYA5AINCe87", "date": "2026-05-06", "likes": 148, "comments": 3, "views": null, "media_type": 8, "product_type": "carousel_container", "carousel_count": 5, "caption": "Senhoras e senhores… o show finalmente vai começar 🎸🔥  Chegou a nova", "format": "Carrossel", "theme": "Lançamento/Coleção", "engagement": 151, "weekday": 2, "eng_rate": 1.048, "link": "https://www.instagram.com/p/DYA5AINCe87/"}, {"code": "DXxUtcRRZVT", "date": "2026-04-30", "likes": 40, "comments": 5, "views": null, "media_type": 2, "product_type": "clips", "carousel_count": null, "caption": "Teste de personalidade: o que cairia da sua bolsa ou do seu bolso?  Um", "format": "Reel", "theme": "Enquete/Interação", "engagement": 45, "weekday": 3, "eng_rate": 0.312, "link": "https://www.instagram.com/p/DXxUtcRRZVT/"}, {"code": "DXjxOAqhJpN", "date": "2026-04-25", "likes": 61, "comments": 7, "views": null, "media_type": 2, "product_type": "clips", "carousel_count": null, "caption": "Com rato não pode bobear mesmo né? 😅  Coleção já disponível nas tabac", "format": "Reel", "theme": "Lançamento/Coleção", "engagement": 68, "weekday": 5, "eng_rate": 0.472, "link": "https://www.instagram.com/p/DXjxOAqhJpN/"}, {"code": "DXcvcZEhpDS", "date": "2026-04-22", "likes": 51, "comments": 7, "views": null, "media_type": 2, "product_type": "clips", "carousel_count": null, "caption": "Clipper: nova coleção  Clippeiro: não fale mais nada!   A nova coleção", "format": "Reel", "theme": "Lançamento/Coleção", "engagement": 58, "weekday": 2, "eng_rate": 0.403, "link": "https://www.instagram.com/p/DXcvcZEhpDS/"}, {"code": "DXXISTfEcHkQIvNm1_1BqEvyMvOmSZOi-cgXLI0", "date": "2026-04-20", "likes": 35, "comments": 6, "views": null, "media_type": 2, "product_type": "clips", "carousel_count": null, "caption": "Eu to rica e não é de dinheiro em @clipperbrasil ? Essa coleção tá mui", "format": "Reel", "theme": "Lançamento/Coleção", "engagement": 41, "weekday": 0, "eng_rate": 0.285, "link": "https://www.instagram.com/p/DXXISTfEcHkQIvNm1_1BqEvyMvOmSZOi-cgXLI0/"}, {"code": "DXP3rlhPX7q", "date": "2026-04-17", "likes": 80, "comments": 5, "views": null, "media_type": 2, "product_type": "clips", "carousel_count": null, "caption": "Descobrimos o antídoto do estresse, e não é remédio não...  Talvez um", "format": "Reel", "theme": "Humor/ClipperMan", "engagement": 85, "weekday": 4, "eng_rate": 0.59, "link": "https://www.instagram.com/p/DXP3rlhPX7q/"}, {"code": "DXFnNhljb4g", "date": "2026-04-13", "likes": 311, "comments": 16, "views": null, "media_type": 8, "product_type": "carousel_container", "carousel_count": 5, "caption": "Foram vistos Clippers gigantes em locais não autorizados pela cidade.", "format": "Carrossel", "theme": "Humor/ClipperMan", "engagement": 327, "weekday": 0, "eng_rate": 2.27, "link": "https://www.instagram.com/p/DXFnNhljb4g/"}, {"code": "DW4lDOWjyYg", "date": "2026-04-08", "likes": 63, "comments": 6, "views": null, "media_type": 8, "product_type": "carousel_container", "carousel_count": 3, "caption": "Ela engajou e ganhou 🏆🔥  @ak.carneiro fechou essa fase com tudo e le", "format": "Carrossel", "theme": "Promoção/Sorteio", "engagement": 69, "weekday": 2, "eng_rate": 0.479, "link": "https://www.instagram.com/p/DW4lDOWjyYg/"}, {"code": "DWpGpk1j_L3", "date": "2026-04-02", "likes": 68, "comments": 8, "views": null, "media_type": 1, "product_type": "feed", "carousel_count": null, "caption": "Tem coisa que nunca sai de moda.  A gente só garante que esteja no seu", "format": "Imagem", "theme": "Institucional/Outros", "engagement": 76, "weekday": 3, "eng_rate": 0.528, "link": "https://www.instagram.com/p/DWpGpk1j_L3/"}, {"code": "DWl-MwAhkfL", "date": "2026-04-01", "likes": 76, "comments": 21, "views": null, "media_type": 2, "product_type": "clips", "carousel_count": null, "caption": "🚨ATENÇÃO Hoje é o dia da mentira e o que mais vai ter na rua é rato m", "format": "Reel", "theme": "Copa & Datas especiais", "engagement": 97, "weekday": 2, "eng_rate": 0.673, "link": "https://www.instagram.com/p/DWl-MwAhkfL/"}, {"code": "DWhfsXRj0hX", "date": "2026-03-30", "likes": 173, "comments": 10, "views": null, "media_type": 8, "product_type": "carousel_container", "carousel_count": 6, "caption": "Pode negar, mas alguma dessas verdades já aconteceu com você 👀🔥", "format": "Carrossel", "theme": "Humor/ClipperMan", "engagement": 183, "weekday": 0, "eng_rate": 1.27, "link": "https://www.instagram.com/p/DWhfsXRj0hX/"}, {"code": "DWZv_2OjYPY", "date": "2026-03-27", "likes": 74, "comments": 5, "views": null, "media_type": 8, "product_type": "carousel_container", "carousel_count": 2, "caption": "Tem coisa que a gente usa… e esquece que fica por aí por MUITO tempo", "format": "Carrossel", "theme": "Institucional/Outros", "engagement": 79, "weekday": 4, "eng_rate": 0.548, "link": "https://www.instagram.com/p/DWZv_2OjYPY/"}, {"code": "DWUlOZJjVHR", "date": "2026-03-25", "likes": 37, "comments": 10, "views": null, "media_type": 8, "product_type": "carousel_container", "carousel_count": 7, "caption": "O clipperman resolveu virar chef de cozinha. Ele conhece o seu eleitor", "format": "Carrossel", "theme": "Humor/ClipperMan", "engagement": 47, "weekday": 2, "eng_rate": 0.326, "link": "https://www.instagram.com/p/DWUlOZJjVHR/"}, {"code": "DWPbEf9hseU", "date": "2026-03-23", "likes": 34, "comments": 5, "views": null, "media_type": 2, "product_type": "clips", "carousel_count": null, "caption": "Alguém mais está sonhando com a coleção nova chegando?   Spoiler: Já e", "format": "Reel", "theme": "Lançamento/Coleção", "engagement": 39, "weekday": 0, "eng_rate": 0.271, "link": "https://www.instagram.com/p/DWPbEf9hseU/"}, {"code": "DWHyWTCkShM", "date": "2026-03-20", "likes": 105, "comments": 12, "views": null, "media_type": 1, "product_type": "feed", "carousel_count": null, "caption": "Entramos na trend só pra provar um ponto: o clippeiro vive em 2 moods.", "format": "Imagem", "theme": "Humor/ClipperMan", "engagement": 117, "weekday": 4, "eng_rate": 0.812, "link": "https://www.instagram.com/p/DWHyWTCkShM/"}, {"code": "DWHEmRERNIV", "date": "2026-03-20", "likes": 1252, "comments": 39, "views": null, "media_type": 2, "product_type": "clips", "carousel_count": null, "caption": "Estou munido de clippers recarregáveis e eternos!  #ratiar  #ratodeest", "format": "Reel", "theme": "Humor/ClipperMan", "engagement": 1291, "weekday": 4, "eng_rate": 8.962, "link": "https://www.instagram.com/p/DWHEmRERNIV/"}, {"code": "DV9egS3Pmp7", "date": "2026-03-16", "likes": 99, "comments": 10, "views": null, "media_type": 2, "product_type": "clips", "carousel_count": null, "caption": "Tem coisa que você usa e esquece.  E tem coisa que você usa… e quando", "format": "Reel", "theme": "Institucional/Outros", "engagement": 109, "weekday": 0, "eng_rate": 0.757, "link": "https://www.instagram.com/p/DV9egS3Pmp7/"}, {"code": "DV1mv-Ej7Ep", "date": "2026-03-13", "likes": 194, "comments": 20, "views": null, "media_type": 8, "product_type": "carousel_container", "carousel_count": 5, "caption": "Sexta-feira 13 tem muito mistério… mas o maior deles ainda é: quem foi", "format": "Carrossel", "theme": "Copa & Datas especiais", "engagement": 214, "weekday": 4, "eng_rate": 1.486, "link": "https://www.instagram.com/p/DV1mv-Ej7Ep/"}, {"code": "DVzPSfDD2IE", "date": "2026-03-12", "likes": 32, "comments": 9, "views": null, "media_type": 8, "product_type": "carousel_container", "carousel_count": 5, "caption": "Se existe o Oscar, também existe o OSCLER premiando as melhores atuaçõ", "format": "Carrossel", "theme": "Copa & Datas especiais", "engagement": 41, "weekday": 3, "eng_rate": 0.285, "link": "https://www.instagram.com/p/DVzPSfDD2IE/"}, {"code": "DVwmKR7CcDb", "date": "2026-03-11", "likes": 72, "comments": 35, "views": null, "media_type": 1, "product_type": "feed", "carousel_count": null, "caption": "🚨 PAREM TUDO UM SEGUNDO 🚨  Semana do Consumidor chegou… e tem Kit Cl", "format": "Imagem", "theme": "Copa & Datas especiais", "engagement": 107, "weekday": 2, "eng_rate": 0.743, "link": "https://www.instagram.com/p/DVwmKR7CcDb/"}, {"code": "DVjmzwij8Sq", "date": "2026-03-06", "likes": 53, "comments": 19, "views": null, "media_type": 8, "product_type": "carousel_container", "carousel_count": 6, "caption": "Escolher errado faz parte do rolê. O problema é fingir que nunca escol", "format": "Carrossel", "theme": "Institucional/Outros", "engagement": 72, "weekday": 4, "eng_rate": 0.5, "link": "https://www.instagram.com/p/DVjmzwij8Sq/"}, {"code": "DVg3lIGiTBS", "date": "2026-03-05", "likes": 41, "comments": 12, "views": null, "media_type": 8, "product_type": "carousel_container", "carousel_count": 2, "caption": "ELE ENGAJOU E GANHOU 🎉 parabéns @_flhz7, você é o Clippeiro mais engajado", "format": "Carrossel", "theme": "Promoção/Sorteio", "engagement": 53, "weekday": 3, "eng_rate": 0.368, "link": "https://www.instagram.com/p/DVg3lIGiTBS/"}, {"code": "DVQ7RxkDTV_", "date": "2026-02-27", "likes": 103, "comments": 25, "views": null, "media_type": 8, "product_type": "carousel_container", "carousel_count": 5, "caption": "pov: você deixou o clipper na mesa e todo mundo virou rato 🐀👀", "format": "Carrossel", "theme": "Humor/ClipperMan", "engagement": 128, "weekday": 4, "eng_rate": 0.889, "link": "https://www.instagram.com/p/DVQ7RxkDTV_/"}, {"code": "DVGlh7sjRBn", "date": "2026-02-23", "likes": 52, "comments": 17, "views": null, "media_type": 1, "product_type": "feed", "carousel_count": null, "caption": "você 🤝 seu clipper: sobreviveram a mais um carnaval porém só um é rec", "format": "Imagem", "theme": "Copa & Datas especiais", "engagement": 69, "weekday": 0, "eng_rate": 0.479, "link": "https://www.instagram.com/p/DVGlh7sjRBn/"}, {"code": "DVBWhIygC6I", "date": "2026-02-21", "likes": 3, "comments": 93, "views": null, "media_type": 2, "product_type": "clips", "carousel_count": null, "caption": "Duvido você acertar quantos Clippers diferentes aparecem nesse vídeo!", "format": "Reel", "theme": "Enquete/Interação", "engagement": 96, "weekday": 5, "eng_rate": 0.666, "link": "https://www.instagram.com/p/DVBWhIygC6I/"}, {"code": "DU_ek5kD-wK", "date": "2026-02-20", "likes": 3, "comments": 34, "views": null, "media_type": 2, "product_type": "clips", "carousel_count": null, "caption": "Quem busca escolhas inteligentes sabe que o Clipper não é só um isquei", "format": "Reel", "theme": "Enquete/Interação", "engagement": 37, "weekday": 4, "eng_rate": 0.257, "link": "https://www.instagram.com/p/DU_ek5kD-wK/"}, {"code": "DU6gs5-DkBZ", "date": "2026-02-18", "likes": 3, "comments": 68, "views": null, "media_type": 2, "product_type": "clips", "carousel_count": null, "caption": "Carnaval é expressão… mas também é sobrevivência 😂🐭  Porque no meio", "format": "Reel", "theme": "Copa & Datas especiais", "engagement": 71, "weekday": 2, "eng_rate": 0.493, "link": "https://www.instagram.com/p/DU6gs5-DkBZ/"}, {"code": "DU3OHuDESEc", "date": "2026-02-17", "likes": 3, "comments": 18, "views": null, "media_type": 2, "product_type": "clips", "carousel_count": null, "caption": "Será que o clipper sobrevive até o fim do rolê de carnaval? 🔥  Confet", "format": "Reel", "theme": "Copa & Datas especiais", "engagement": 21, "weekday": 1, "eng_rate": 0.146, "link": "https://www.instagram.com/p/DU3OHuDESEc/"}, {"code": "DUtxbAVALKz", "date": "2026-02-13", "likes": 710, "comments": 69, "views": null, "media_type": 2, "product_type": "clips", "carousel_count": null, "caption": "Notas pro ixxqueiro do @clipperbrasil?  FAMILIA NOSSAS FANTASIAS FORAM", "format": "Reel", "theme": "Institucional/Outros", "engagement": 779, "weekday": 4, "eng_rate": 5.408, "link": "https://www.instagram.com/p/DUtxbAVALKz/"}, {"code": "DUrOkpzj5_P", "date": "2026-02-12", "likes": 131, "comments": 17, "views": null, "media_type": 2, "product_type": "clips", "carousel_count": null, "caption": "Os ratos estão disfarçados. E não, eles não usam orelhinha.  Fica espe", "format": "Reel", "theme": "Humor/ClipperMan", "engagement": 148, "weekday": 3, "eng_rate": 1.027, "link": "https://www.instagram.com/p/DUrOkpzj5_P/"}, {"code": "DUoscyhDWJ7", "date": "2026-02-11", "likes": 65, "comments": 11, "views": null, "media_type": 1, "product_type": "feed", "carousel_count": null, "caption": "Todos quierem ser Clipper, pelo les falta mucho! 😎", "format": "Imagem", "theme": "Institucional/Outros", "engagement": 76, "weekday": 2, "eng_rate": 0.528, "link": "https://www.instagram.com/p/DUoscyhDWJ7/"}, {"code": "DUl5OoPjwsE", "date": "2026-02-10", "likes": 94, "comments": 13, "views": null, "media_type": 1, "product_type": "feed", "carousel_count": null, "caption": "O Clipperman também entrou na trend!! 😎  Há quem diga que é impossive", "format": "Imagem", "theme": "Enquete/Interação", "engagement": 107, "weekday": 1, "eng_rate": 0.743, "link": "https://www.instagram.com/p/DUl5OoPjwsE/"}, {"code": "DUlhVEniQmb", "date": "2026-02-10", "likes": 57, "comments": 7, "views": null, "media_type": 8, "product_type": "carousel_container", "carousel_count": 2, "caption": "Janeiro passou voando… mas teve gente que não deixou o Clipper esfriar", "format": "Carrossel", "theme": "Institucional/Outros", "engagement": 64, "weekday": 1, "eng_rate": 0.444, "link": "https://www.instagram.com/p/DUlhVEniQmb/"}, {"code": "DUjavvkjzi3", "date": "2026-02-09", "likes": 43, "comments": 11, "views": null, "media_type": 8, "product_type": "carousel_container", "carousel_count": 4, "caption": "Qual seu triângulo amoroso perfeito pra esse Carnaval? 👀", "format": "Carrossel", "theme": "Copa & Datas especiais", "engagement": 54, "weekday": 0, "eng_rate": 0.375, "link": "https://www.instagram.com/p/DUjavvkjzi3/"}, {"code": "DURPcxCjxWB", "date": "2026-02-02", "likes": 73, "comments": 17, "views": null, "media_type": 2, "product_type": "clips", "carousel_count": null, "caption": "Fevereiro chegou.  Carnaval: ON. Clipper: aceso. Rato: disfarçado. Cui", "format": "Reel", "theme": "Copa & Datas especiais", "engagement": 90, "weekday": 0, "eng_rate": 0.625, "link": "https://www.instagram.com/p/DURPcxCjxWB/"}, {"code": "DUJj47Gj1Gh", "date": "2026-01-30", "likes": 52, "comments": 13, "views": null, "media_type": 2, "product_type": "clips", "carousel_count": null, "caption": "E nem é meme 👀 Mosca pra ver 😅🐀", "format": "Reel", "theme": "Humor/ClipperMan", "engagement": 65, "weekday": 4, "eng_rate": 0.451, "link": "https://www.instagram.com/p/DUJj47Gj1Gh/"}, {"code": "DUEUeNoD-cf", "date": "2026-01-28", "likes": 45, "comments": 15, "views": null, "media_type": 1, "product_type": "feed", "carousel_count": null, "caption": "É isso galera, quem já vai garantir a passagem?", "format": "Imagem", "theme": "Promoção/Sorteio", "engagement": 60, "weekday": 2, "eng_rate": 0.417, "link": "https://www.instagram.com/p/DUEUeNoD-cf/"}, {"code": "DUB2lldD7xO", "date": "2026-01-27", "likes": 55, "comments": 15, "views": null, "media_type": 2, "product_type": "clips", "carousel_count": null, "caption": "Quem mais tem uma amiga dessa? 🤣  Marca aqui!", "format": "Reel", "theme": "Comunidade/UGC", "engagement": 70, "weekday": 1, "eng_rate": 0.486, "link": "https://www.instagram.com/p/DUB2lldD7xO/"}, {"code": "DT_KXhKj7bA", "date": "2026-01-26", "likes": 95, "comments": 13, "views": null, "media_type": 1, "product_type": "feed", "carousel_count": null, "caption": "É, ClipperMan… a gente te entende. 😮‍💨 Tem coisa que até passa.  Men", "format": "Imagem", "theme": "Humor/ClipperMan", "engagement": 108, "weekday": 0, "eng_rate": 0.75, "link": "https://www.instagram.com/p/DT_KXhKj7bA/"}, {"code": "DT3dNRWj2fA", "date": "2026-01-23", "likes": 40, "comments": 24, "views": null, "media_type": 8, "product_type": "carousel_container", "carousel_count": 4, "caption": "Essa semana vocês mandaram as músicas que escutam com o Clipper por pe", "format": "Carrossel", "theme": "Comunidade/UGC", "engagement": 64, "weekday": 4, "eng_rate": 0.444, "link": "https://www.instagram.com/p/DT3dNRWj2fA/"}, {"code": "DTyTqXJD8Lz", "date": "2026-01-21", "likes": 53, "comments": 13, "views": null, "media_type": 8, "product_type": "carousel_container", "carousel_count": 6, "caption": "Dá pra ouvir daqui as músicas 👀  Seu Clipper já foi pra um festival e", "format": "Carrossel", "theme": "Copa & Datas especiais", "engagement": 66, "weekday": 2, "eng_rate": 0.458, "link": "https://www.instagram.com/p/DTyTqXJD8Lz/"}, {"code": "DTlfyt9Daje", "date": "2026-01-19", "likes": 57, "comments": 8, "views": null, "media_type": 2, "product_type": "clips", "carousel_count": null, "caption": "Todo Clipper tem vibe de música. Qual é a vibe dos seus? 🎧🔥", "format": "Reel", "theme": "Enquete/Interação", "engagement": 65, "weekday": 0, "eng_rate": 0.451, "link": "https://www.instagram.com/p/DTlfyt9Daje/"}, {"code": "DTliDjXjx0r", "date": "2026-01-16", "likes": 55, "comments": 14, "views": null, "media_type": 8, "product_type": "carousel_container", "carousel_count": 3, "caption": "Usar até o fim também é escolha. Recarregar também. Jogar fora nem sem", "format": "Carrossel", "theme": "Institucional/Outros", "engagement": 69, "weekday": 4, "eng_rate": 0.479, "link": "https://www.instagram.com/p/DTliDjXjx0r/"}, {"code": "DTgTV2Xj2LI", "date": "2026-01-14", "likes": 81, "comments": 6, "views": null, "media_type": 2, "product_type": "clips", "carousel_count": null, "caption": "Agora o rato pode até tentar… mas chegamos com reforço. 😌  Reforço ga", "format": "Reel", "theme": "Humor/ClipperMan", "engagement": 87, "weekday": 2, "eng_rate": 0.604, "link": "https://www.instagram.com/p/DTgTV2Xj2LI/"}, {"code": "DTbI5TgDyg5", "date": "2026-01-12", "likes": 58, "comments": 12, "views": null, "media_type": 8, "product_type": "carousel_container", "carousel_count": 5, "caption": "O verão é pra todo mundo…  Mas o nosso envolve apego emocional ao noss", "format": "Carrossel", "theme": "Copa & Datas especiais", "engagement": 70, "weekday": 0, "eng_rate": 0.486, "link": "https://www.instagram.com/p/DTbI5TgDyg5/"}, {"code": "DTTZlQajxB9", "date": "2026-01-09", "likes": 41, "comments": 17, "views": null, "media_type": 1, "product_type": "feed", "carousel_count": null, "caption": "Janeiro não pediu licença. Veio com boleto, cansaço, promessa de faxin", "format": "Imagem", "theme": "Copa & Datas especiais", "engagement": 58, "weekday": 4, "eng_rate": 0.403, "link": "https://www.instagram.com/p/DTTZlQajxB9/"}, {"code": "DTQ7FIND057", "date": "2026-01-08", "likes": 36, "comments": 13, "views": null, "media_type": 8, "product_type": "carousel_container", "carousel_count": 2, "caption": "Dezembro até pediu uma pausa… mas teve gente que simplesmente não paro", "format": "Carrossel", "theme": "Institucional/Outros", "engagement": 49, "weekday": 3, "eng_rate": 0.34, "link": "https://www.instagram.com/p/DTQ7FIND057/"}, {"code": "DTOZFACj2kl", "date": "2026-01-07", "likes": 76, "comments": 10, "views": null, "media_type": 8, "product_type": "carousel_container", "carousel_count": 8, "caption": "Férias acabam. O ano vira.  E alguns Clipper atravessam tudo isso sem", "format": "Carrossel", "theme": "Copa & Datas especiais", "engagement": 86, "weekday": 2, "eng_rate": 0.597, "link": "https://www.instagram.com/p/DTOZFACj2kl/"}, {"code": "DTJLiitETjz", "date": "2026-01-05", "likes": 58, "comments": 6, "views": null, "media_type": 8, "product_type": "carousel_container", "carousel_count": 5, "caption": "Metas de começo de ano são assim:  alguém tenta evoluir…  alguém tenta", "format": "Carrossel", "theme": "Institucional/Outros", "engagement": 64, "weekday": 0, "eng_rate": 0.444, "link": "https://www.instagram.com/p/DTJLiitETjz/"}, {"code": "DS-Vb3tDYgP", "date": "2026-01-01", "likes": 203, "comments": 17, "views": null, "media_type": 1, "product_type": "feed", "carousel_count": null, "caption": "Algum Clippeiro se identifica? 👀", "format": "Imagem", "theme": "Institucional/Outros", "engagement": 220, "weekday": 3, "eng_rate": 1.527, "link": "https://www.instagram.com/p/DS-Vb3tDYgP/"}]}</script>
+
+<script>
+const DATA = JSON.parse(document.getElementById('dashboard-data').textContent);
+const FOLLOWERS = DATA.account.followers;
+const THEME_ORDER = ["Copa & Datas especiais","Humor/ClipperMan","Institucional/Outros","Enquete/Interação","Lançamento/Coleção","Promoção/Sorteio","Comunidade/UGC"];
+const PALETTE = ["#150F26","#F5EA1C","#A8790A","#6B46C1","#1E9E5A","#D6473C","#1E6FA8","#B45309"];
+
+// ---------- tabs ----------
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.tabpanel').forEach(p=>p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-'+btn.dataset.tab).classList.add('active');
+  });
+});
+
+// ---------- dashboard KPIs ----------
+document.getElementById('lastUpdate').textContent = 'Atualizado em ' + fmtDate(DATA.generated_at);
+document.getElementById('periodEnd').textContent = fmtDate(DATA.generated_at);
+
+function fmtDate(iso){
+  const [y,m,d] = iso.split('-');
+  return d+'/'+m+'/'+y;
+}
+
+const avgEng = DATA.posts.reduce((s,p)=>s+p.eng_rate,0)/DATA.posts.length;
+document.getElementById('kpiEng').textContent = avgEng.toFixed(2)+'%';
+const benchGood = DATA.benchmark.engagement_rate_good;
+const engEl = document.getElementById('kpiEng');
+if (avgEng < benchGood) engEl.classList.add('warn'); else engEl.classList.add('ok');
+document.getElementById('kpiEngSub').textContent = (avgEng < benchGood ? 'abaixo' : 'acima') + ' do benchmark do porte da conta';
+document.getElementById('kpiEngBench').textContent = 'Benchmark ' + DATA.benchmark.tier_label + ': ' + DATA.benchmark.engagement_rate_range[0] + '% –' + DATA.benchmark.engagement_rate_range[1] + '% (bom: ' + benchGood + '%+) · ' + DATA.benchmark.source;
+
+document.getElementById('kpiReels').textContent = DATA.insights_90d.views_by_type.reels + '%';
+
+const firstDate = DATA.posts.reduce((min,p)=> p.date<min?p.date:min, DATA.posts[0].date);
+const lastDate = DATA.posts.reduce((max,p)=> p.date>max?p.date:max, DATA.posts[0].date);
+const days = (new Date(lastDate) - new Date(firstDate))/86400000 + 1;
+const perWeek = (DATA.posts.length / days * 7).toFixed(1);
+document.getElementById('kpiFreq').textContent = perWeek + '/sem';
+document.getElementById('kpiFreqSub').textContent = DATA.posts.length + ' posts entre ' + fmtDate(firstDate) + ' e ' + fmtDate(lastDate);
+
+document.getElementById('kpiFollowers').textContent = FOLLOWERS.toLocaleString('pt-BR');
+
+document.getElementById('dataNote').textContent = 'Curtidas, comentários, formato e data vêm do Instagram Insights (dados reais da conta). Visualizações por post: Instagram só expõe esse número de forma agregada para contas de terceiros além de 90 dias; os totais de "alcance" acima usam os agregados oficiais de Insights de conta (30/90 dias).';
+
+// ---------- follower growth chart ----------
+let followerHistory = JSON.parse(localStorage.getItem('clipper_follower_history') || 'null') || DATA.follower_history;
+new Chart(document.getElementById('chartFollowers'), {
+  type:'line',
+  data:{ labels: followerHistory.map(f=>fmtDate(f.date)),
+    datasets:[{ label:'Seguidores', data: followerHistory.map(f=>f.followers),
+      borderColor:'#A8790A', backgroundColor:'rgba(168,121,10,.12)', fill:true, tension:.25, pointRadius:4, pointBackgroundColor:'#A8790A' }]},
+  options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{ y:{ beginAtZero:false } } }
+});
+
+// ---------- engagement by month ----------
+function groupBy(arr, keyFn){
+  const m = {};
+  arr.forEach(x=>{ const k = keyFn(x); (m[k] = m[k]||[]).push(x); });
+  return m;
+}
+const byMonth = groupBy(DATA.posts, p=>p.date.slice(0,7));
+const months = Object.keys(byMonth).sort();
+const monthLabels = months.map(m=>{
+  const names=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+  return names[parseInt(m.slice(5,7))-1]+'/'+m.slice(2,4);
+});
+new Chart(document.getElementById('chartMonth'), {
+  type:'bar',
+  data:{ labels: monthLabels, datasets:[{ label:'Engajamento médio (%)',
+    data: months.map(m=> (byMonth[m].reduce((s,p)=>s+p.eng_rate,0)/byMonth[m].length)),
+    backgroundColor:'#150F26', borderRadius:6 }]},
+  options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{y:{ticks:{callback:v=>v+'%'}}} }
+});
+
+// ---------- by format ----------
+const byFormat = groupBy(DATA.posts, p=>p.format);
+const formatKeys = Object.keys(byFormat);
+new Chart(document.getElementById('chartFormat'), {
+  type:'bar',
+  data:{ labels: formatKeys, datasets:[{ label:'Engajamento médio (%)',
+    data: formatKeys.map(k=> byFormat[k].reduce((s,p)=>s+p.eng_rate,0)/byFormat[k].length),
+    backgroundColor:['#F5EA1C','#A8790A','#6B46C1'], borderRadius:6 }]},
+  options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, indexAxis:'y', scales:{x:{ticks:{callback:v=>v+'%'}}} }
+});
+
+// ---------- by theme ----------
+const byTheme = groupBy(DATA.posts, p=>p.theme);
+const themeKeys = Object.keys(byTheme).sort((a,b)=> (byTheme[b].length)-(byTheme[a].length));
+new Chart(document.getElementById('chartTheme'), {
+  type:'bar',
+  data:{ labels: themeKeys, datasets:[{ label:'Engajamento médio (%)',
+    data: themeKeys.map(k=> byTheme[k].reduce((s,p)=>s+p.eng_rate,0)/byTheme[k].length),
+    backgroundColor: themeKeys.map((_,i)=>PALETTE[i%PALETTE.length]), borderRadius:6 }]},
+  options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, indexAxis:'y', scales:{x:{ticks:{callback:v=>v+'%'}}} }
+});
+
+// ---------- by weekday ----------
+const wdNames = ["Segunda","Terça","Quarta","Quinta","Sexta","Sábado","Domingo"];
+const byWd = groupBy(DATA.posts, p=>p.weekday);
+new Chart(document.getElementById('chartWeekday'), {
+  type:'bar',
+  data:{ labels: wdNames, datasets:[{ label:'Engajamento médio (%)',
+    data: wdNames.map((_,i)=> byWd[i] ? byWd[i].reduce((s,p)=>s+p.eng_rate,0)/byWd[i].length : 0),
+    backgroundColor:'#A8790A', borderRadius:6 }]},
+  options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{y:{ticks:{callback:v=>v+'%'}}} }
+});
+
+// ---------- top 10 ----------
+const top10 = [...DATA.posts].sort((a,b)=>b.engagement-a.engagement).slice(0,10);
+const top10Body = document.getElementById('top10Body');
+top10.forEach((p,i)=>{
+  const tr = document.createElement('tr');
+  const pillClass = p.format==='Reel'?'pill-reel':p.format==='Carrossel'?'pill-carrossel':'pill-imagem';
+  tr.innerHTML = `<td class="rank">${i+1}</td><td>${p.caption.slice(0,55)}${p.caption.length>55?'₦':''}</td>
+    <td>${fmtDate(p.date)}</td><td><span class="pill ${pillClass}">${p.format}</span></td><td>${p.theme}</td>
+    <td>${p.likes.toLocaleString('pt-BR')}</td><td>${p.comments.toLocaleString('pt-BR')}</td>
+    <td><strong>${p.engagement.toLocaleString('pt-BR')}</strong></td>
+    <td><a class="postlink" href="${p.link}" target="_blank" rel="noopener">Abrir ↗</a></td>`;
+  top10Body.appendChild(tr);
+});
+
+// ================= CALEND�RIO =================
+let calState = JSON.parse(localStorage.getItem('clipper_calendar') || '[]');
+function saveCal(){ localStorage.setItem('clipper_calendar', JSON.stringify(calState)); }
+
+let viewYear, viewMonth; // 0-indexed month
+(function initCalDate(){
+  const today = new Date();
+  viewYear = today.getFullYear(); viewMonth = today.getMonth();
+})();
+
+const dowNames = ['DOM','SEG','TER','QUA','QUI','SEX','SÁB'];
+const calDowEl = document.getElementById('calDow');
+dowNames.forEach(n=>{ const d=document.createElement('div'); d.className='cal-dow'; d.textContent=n; calDowEl.appendChild(d); });
+
+const monthNamesFull = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+function renderCalendar(){
+  document.getElementById('calTitle').textContent = monthNamesFull[viewMonth] + ' de ' + viewYear;
+  const grid = document.getElementById('calGrid');
+  grid.innerHTML = '';
+  const firstOfMonth = new Date(viewYear, viewMonth, 1);
+  const startOffset = firstOfMonth.getDay(); // 0=sun
+  const daysInMonth = new Date(viewYear, viewMonth+1, 0).getDate();
+  const daysInPrevMonth = new Date(viewYear, viewMonth, 0).getDate();
+  const todayStr = new Date().toISOString().slice(0,10);
+
+  const cells = [];
+  for (let i=0;i<startOffset;i++){
+    const dayNum = daysInPrevMonth - startOffset + 1 + i;
+    cells.push({dayNum, other:true, dateStr:null});
+  }
+  for (let d=1; d<=daysInMonth; d++){
+    const dateStr = viewYear+'-'+String(viewMonth+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+    cells.push({dayNum:d, other:false, dateStr});
+  }
+  while(cells.length % 7 !== 0){
+    const dayNum = cells.length - (startOffset+daysInMonth) + 1;
+    cells.push({dayNum, other:true, dateStr:null});
+  }
+
+  cells.forEach(c=>{
+    const cell = document.createElement('div');
+    cell.className = 'cal-cell' + (c.other?' other-month':'') + (c.dateStr===todayStr?' today':'');
+    const head = document.createElement('div');
+    head.className = 'cal-daynum';
+    head.innerHTML = `<span>${c.dayNum}</span>`;
+    if (!c.other){
+      const addBtn = document.createElement('button');
+      addBtn.className='cal-add'; addBtn.textContent='+';
+      addBtn.onclick = ()=> openCalModal(null, c.dateStr);
+      head.appendChild(addBtn);
+    }
+    cell.appendChild(head);
+    if (c.dateStr){
+      calState.filter(p=>p.date===c.dateStr).forEach(p=>{
+        const chip = document.createElement('div');
+        chip.className = 'cal-chip status-'+p.status;
+        chip.textContent = p.title;
+        chip.onclick = ()=> openCalModal(p.id, c.dateStr);
+        cell.appendChild(chip);
+      });
+    }
+    grid.appendChild(cell);
+  });
+}
+
+document.getElementById('calPrev').onclick = ()=>{ viewMonth--; if(viewMonth<0){viewMonth=11;viewYear--;} renderCalendar(); };
+document.getElementById('calNext').onclick = ()=>{ viewMonth++; if(viewMonth>11){viewMonth=0;viewYear++;} renderCalendar(); };
+document.getElementById('calToday').onclick = ()=>{ const t=new Date(); viewYear=t.getFullYear(); viewMonth=t.getMonth(); renderCalendar(); };
+
+let editingId = null;
+function openCalModal(id, dateStr){
+  editingId = id;
+  const modal = document.getElementById('calModalBg');
+  if (id){
+    const item = calState.find(p=>p.id===id);
+    document.getElementById('calModalTitle').textContent = 'Editar post';
+    document.getElementById('fTitle').value = item.title;
+    document.getElementById('fDate').value = item.date;
+    document.getElementById('fStatus').value = item.status;
+    document.getElementById('fFormat').value = item.format;
+    document.getElementById('fNotes').value = item.notes||'';
+    document.getElementById('fDelete').style.display='inline-block';
+  } else {
+    document.getElementById('calModalTitle').textContent = 'Novo post';
+    document.getElementById('fTitle').value = '';
+    document.getElementById('fDate').value = dateStr;
+    document.getElementById('fStatus').value = 'rascunho';
+    document.getElementById('fFormat').value = 'Feed';
+    document.getElementById('fNotes').value = '';
+    document.getElementById('fDelete').style.display='none';
+  }
+  modal.classList.add('open');
+}
+document.getElementById('fCancel').onclick = ()=> document.getElementById('calModalBg').classList.remove('open');
+document.getElementById('fSave').onclick = ()=>{
+  const title = document.getElementById('fTitle').value.trim();
+  if (!title) return alert('Dé um título ao post.');
+  const payload = {
+    id: editingId || ('p'+Date.now()),
+    title, date: document.getElementById('fDate').value,
+    status: document.getElementById('fStatus').value,
+    format: document.getElementById('fFormat').value,
+    notes: document.getElementById('fNotes').value
+  };
+  if (editingId){
+    calState = calState.map(p=>p.id===editingId?payload:p);
+  } else {
+    calState.push(payload);
+  }
+  saveCal();
+  document.getElementById('calModalBg').classList.remove('open');
+  renderCalendar();
+};
+document.getElementById('fDelete').onclick = ()=>{
+  calState = calState.filter(p=>p.id!==editingId);
+  saveCal();
+  document.getElementById('calModalBg').classList.remove('open');
+  renderCalendar();
+};
+
+renderCalendar();
+
+// ================= RESULTADOS =================
+let resultsState = JSON.parse(localStorage.getItem('clipper_results') || '[]');
+function saveResults(){ localStorage.setItem('clipper_results', JSON.stringify(resultsState)); renderResultsSummary(); }
+
+function renderResultsSummary(){
+  const el = document.getElementById('resSummary');
+  const n = resultsState.length;
+  const totViews = resultsState.reduce((s,r)=>s+(+r.views||0),0);
+  const totLikes = resultsState.reduce((s,r)=>s+(+r.likes||0),0);
+  const totComments = resultsState.reduce((s,r)=>s+(+r.comments||0),0);
+  const avgEngPct = n && FOLLOWERS ? ((resultsState.reduce((s,r)=>s+((+r.likes||0)+(+r.comments||0)),0)/n)/FOLLOWERS*100).toFixed(2) : '0.00';
+  el.innerHTML = `
+    <div class="card"><div class="label">Posts registrados</div><div class="value">${n}</div></div>
+    <div class="card"><div class="label">Views totais</div><div class="value">${totViews.toLocaleString('pt-BR')}</div></div>
+    <div class="card"><div class="label">Curtidas totais</div><div class="value">${totLikes.toLocaleString('pt-BR')}</div></div>
+    <div class="card"><div class="label">Engajamento médio</div><div class="value">${avgEngPct}%</div></div>`;
+}
+
+function renderResultsTable(){
+  const body = document.getElementById('resultsBody');
+  body.innerHTML = '';
+  resultsState.forEach((r,idx)=>{
+    const tr = document.createElement('tr');
+    const fields = ['post','date','views','likes','comments','reposts','sends','shares','saves'];
+    const types = {post:'text',date:'date',views:'number',likes:'number',comments:'number',reposts:'number',sends:'number',shares:'number',saves:'number'};
+    tr.innerHTML = fields.map(f=>`<td><input class="cell-input" data-field="${f}" type="${types[f]}" value="${r[f]!==undefined?r[f]:''}"></td>`).join('')
+      + `<td><button class="del-btn" data-idx="${idx}">✕</button></td>`;
+    body.appendChild(tr);
+    tr.querySelectorAll('input').forEach(inp=>{
+      inp.addEventListener('change', ()=>{
+        resultsState[idx][inp.dataset.field] = inp.type==='number' ? (inp.value===''?'':+inp.value) : inp.value;
+        saveResults();
+      });
+    });
+    tr.querySelector('.del-btn').addEventListener('click', ()=>{
+      resultsState.splice(idx,1);
+      saveResults(); renderResultsTable();
+    });
+  });
+}
+
+document.getElementById('addResultBtn').onclick = ()=>{
+  resultsState.push({post:'', date:new Date().toISOString().slice(0,10), views:'', likes:'', comments:'', reposts:'', sends:'', shares:'', saves:''});
+  saveResults();
+  renderResultsTable();
+};
+
+renderResultsTable();
+renderResultsSummary();
+</script>
+</body>
+</html>
