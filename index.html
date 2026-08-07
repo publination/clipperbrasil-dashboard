@@ -177,6 +177,18 @@ footer.foot{max-width:1280px;margin:20px auto 40px;padding:0 28px;color:var(--mu
       <div class="chart-card"><div class="chart-wrap"><canvas id="chartFollowers"></canvas></div></div>
     </div>
 
+    <div class="section">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <strong style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;">Formato e tema — periodo:</strong>
+        <div class="period-filter" id="periodFilter">
+          <button class="period-btn active" data-days="0">Todo o periodo</button>
+          <button class="period-btn" data-days="30">Ultimos 30 dias</button>
+          <button class="period-btn" data-days="60">Ultimos 60 dias</button>
+          <button class="period-btn" data-days="90">Ultimos 90 dias</button>
+        </div>
+      </div>
+    </div>
+
     <div class="section grid grid-2">
       <div>
         <h2>Engajamento por mês</h2>
@@ -353,32 +365,57 @@ new Chart(document.getElementById('chartMonth'), {
   options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{y:{ticks:{callback:v=>v+'%'}}} }
 });
 
-// ---------- engajamento por formato, tema e top 10 (periodo completo) ----------
+// ---------- by format & by theme (com filtro de periodo) ----------
+let chartFormatInstance, chartThemeInstance;
 function computeByKey(posts, keyFn){
   const g = groupBy(posts, keyFn);
   return Object.keys(g).map(function(k){ return { key:k, n:g[k].length, avg: g[k].reduce(function(s,p){return s+p.eng_rate;},0)/g[k].length }; });
 }
 const pctCB = function(v){ return v + '%'; };
-
-const fmtRows = computeByKey(DATA.posts, function(p){return p.format;});
-const fmtLabels = fmtRows.map(function(r){return r.key;});
-const fmtData = fmtRows.map(function(r){return r.avg;});
-new Chart(document.getElementById('chartFormat'), {
-  type:'bar',
-  data:{ labels: fmtLabels, datasets:[{ label:'Engajamento medio (%)', data: fmtData,
-    backgroundColor:['#F5EA1C','#A8790A','#6B46C1'], borderRadius:6 }]},
-  options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, indexAxis:'y', scales:{x:{ticks:{callback:pctCB}}} }
+function renderFormatTheme(days){
+  const refDate = new Date(DATA.generated_at);
+  let posts = DATA.posts;
+  if (days > 0){
+    const cutoff = new Date(refDate); cutoff.setDate(cutoff.getDate()-days);
+    const cutoffStr = cutoff.toISOString().slice(0,10);
+    posts = DATA.posts.filter(function(p){ return p.date >= cutoffStr; });
+  }
+  const fmtRows = computeByKey(posts, function(p){return p.format;});
+  const fmtLabels = fmtRows.map(function(r){return r.key;});
+  const fmtData = fmtRows.map(function(r){return r.avg;});
+  const themeRows = computeByKey(posts, function(p){return p.theme;}).sort(function(a,b){return b.n-a.n;});
+  const themeLabels = themeRows.map(function(r){return r.key;});
+  const themeData = themeRows.map(function(r){return r.avg;});
+  if (!chartFormatInstance){
+    chartFormatInstance = new Chart(document.getElementById('chartFormat'), {
+      type:'bar',
+      data:{ labels: fmtLabels, datasets:[{ label:'Engajamento medio (%)', data: fmtData,
+        backgroundColor:['#F5EA1C','#A8790A','#6B46C1'], borderRadius:6 }]},
+      options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, indexAxis:'y', scales:{x:{ticks:{callback:pctCB}}} }
+    });
+  } else {
+    chartFormatInstance.data.labels = fmtLabels;
+    chartFormatInstance.data.datasets[0].data = fmtData;
+    chartFormatInstance.update();
+  }
+  if (!chartThemeInstance){
+    chartThemeInstance = new Chart(document.getElementById('chartTheme'), {
+      type:'bar',
+      data:{ labels: themeLabels, datasets:[{ label:'Engajamento medio (%)', data: themeData,
+        backgroundColor: themeLabels.map(function(_,i){return PALETTE[i%PALETTE.length];}), borderRadius:6 }]},
+      options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, indexAxis:'y', scales:{x:{ticks:{callback:pctCB}}} }
+    });
+  } else {
+    chartThemeInstance.data.labels = themeLabels;
+    chartThemeInstance.data.datasets[0].data = themeData;
+    chartThemeInstance.update();
+  }
+  document.querySelectorAll('.period-btn').forEach(function(b){ b.classList.toggle('active', +b.dataset.days === days); });
+}
+document.querySelectorAll('.period-btn').forEach(function(btn){
+  btn.addEventListener('click', function(){ renderFormatTheme(+btn.dataset.days); });
 });
-
-const themeRows = computeByKey(DATA.posts, function(p){return p.theme;}).sort(function(a,b){return b.n-a.n;});
-const themeLabels = themeRows.map(function(r){return r.key;});
-const themeData = themeRows.map(function(r){return r.avg;});
-new Chart(document.getElementById('chartTheme'), {
-  type:'bar',
-  data:{ labels: themeLabels, datasets:[{ label:'Engajamento medio (%)', data: themeData,
-    backgroundColor: themeLabels.map(function(_,i){return PALETTE[i%PALETTE.length];}), borderRadius:6 }]},
-  options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, indexAxis:'y', scales:{x:{ticks:{callback:pctCB}}} }
-});
+renderFormatTheme(0);
 
 // ---------- top 10 ----------
 const top10 = [...DATA.posts].sort(function(a,b){return b.engagement-a.engagement;}).slice(0,10);
