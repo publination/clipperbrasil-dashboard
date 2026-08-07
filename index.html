@@ -292,6 +292,8 @@ footer.foot{max-width:1280px;margin:20px auto 40px;padding:0 28px;color:var(--mu
 <script>
 const DATA = JSON.parse(document.getElementById('dashboard-data').textContent);
 const FOLLOWERS = DATA.account.followers;
+const OUTLIER_CODES = ['DWHEmRERNIV'];
+const postsForAvg = DATA.posts.filter(function(p){ return OUTLIER_CODES.indexOf(p.code) === -1; });
 const THEME_ORDER = ["Copa & Datas especiais","Humor/ClipperMan","Institucional/Outros","Enquete/Interação","Lançamento/Coleção","Promoção/Sorteio","Comunidade/UGC"];
 const PALETTE = ["#150F26","#F5EA1C","#A8790A","#6B46C1","#1E9E5A","#D6473C","#1E6FA8","#B45309"];
 
@@ -314,7 +316,7 @@ function fmtDate(iso){
   return d+'/'+m+'/'+y;
 }
 
-const avgEng = DATA.posts.reduce((s,p)=>s+p.eng_rate,0)/DATA.posts.length;
+const avgEng = postsForAvg.reduce((s,p)=>s+p.eng_rate,0)/postsForAvg.length;
 document.getElementById('kpiEng').textContent = avgEng.toFixed(2)+'%';
 const benchGood = DATA.benchmark.engagement_rate_good;
 const engEl = document.getElementById('kpiEng');
@@ -351,7 +353,7 @@ function groupBy(arr, keyFn){
   arr.forEach(x=>{ const k = keyFn(x); (m[k] = m[k]||[]).push(x); });
   return m;
 }
-const byMonth = groupBy(DATA.posts, p=>p.date.slice(0,7));
+const byMonth = groupBy(postsForAvg, p=>p.date.slice(0,7));
 const months = Object.keys(byMonth).sort();
 const monthLabels = months.map(m=>{
   const names=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
@@ -374,7 +376,7 @@ function computeByKey(posts, keyFn){
 const pctCB = function(v){ return v + '%'; };
 function renderFormatTheme(days){
   const refDate = new Date(DATA.generated_at);
-  let posts = DATA.posts;
+  let posts = postsForAvg;
   if (days > 0){
     const cutoff = new Date(refDate); cutoff.setDate(cutoff.getDate()-days);
     const cutoffStr = cutoff.toISOString().slice(0,10);
@@ -416,6 +418,17 @@ document.querySelectorAll('.period-btn').forEach(function(btn){
   btn.addEventListener('click', function(){ renderFormatTheme(+btn.dataset.days); });
 });
 renderFormatTheme(0);
+
+// ---------- by weekday ----------
+const wdNames = ['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'];
+const byWd = groupBy(postsForAvg, function(p){return p.weekday;});
+new Chart(document.getElementById('chartWeekday'), {
+  type:'bar',
+  data:{ labels: wdNames, datasets:[{ label:'Engajamento medio (%)',
+    data: wdNames.map(function(_,i){ return byWd[i] ? byWd[i].reduce(function(s,p){return s+p.eng_rate;},0)/byWd[i].length : 0; }),
+    backgroundColor:'#A8790A', borderRadius:6 }]},
+  options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{y:{ticks:{callback:pctCB}}} }
+});
 
 // ---------- top 10 ----------
 const top10 = [...DATA.posts].sort(function(a,b){return b.engagement-a.engagement;}).slice(0,10);
