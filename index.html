@@ -197,6 +197,7 @@ footer.foot{max-width:1280px;margin:20px auto 40px;padding:0 28px;color:var(--mu
       <div>
         <h2>Engajamento por formato</h2>
         <div class="chart-card"><div class="chart-wrap"><canvas id="chartFormat"></canvas></div></div>
+        <p class="note" id="formatNote" style="margin-top:8px;"></p>
       </div>
     </div>
 
@@ -418,6 +419,20 @@ document.querySelectorAll('.period-btn').forEach(function(btn){
   btn.addEventListener('click', function(){ renderFormatTheme(+btn.dataset.days); });
 });
 renderFormatTheme(0);
+
+function updateFormatNote(){
+  const reels = postsForAvg.filter(function(p){ return p.format==='Reel'; }).slice().sort(function(a,b){ return b.eng_rate-a.eng_rate; });
+  const top = reels.slice(0,2);
+  const noteEl = document.getElementById('formatNote');
+  if (noteEl && top.length){
+    const parts = top.map(function(p){
+      const cap = p.caption.length>55 ? p.caption.slice(0,55)+'...' : p.caption;
+      return '"' + cap + '" (' + fmtDate(p.date) + ', ' + p.eng_rate + '% de engajamento)';
+    });
+    noteEl.textContent = 'O Reel aparece com media mais alta por causa de posts pontuais de alto desempenho, como ' + parts.join(' e ') + '. Sem esses picos, o desempenho tipico do Reel fica proximo ao do Carrossel, que e mais consistente no dia a dia.';
+  }
+}
+updateFormatNote();
 
 // ---------- by weekday ----------
 const wdNames = ['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'];
