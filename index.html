@@ -146,7 +146,7 @@ input.cell-input:hover,input.cell-input:focus{border-color:var(--border);backgro
 .pp-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;}
 .pp-images{display:flex;gap:8px;overflow-x:auto;margin-bottom:12px;}
 .pp-images img{width:90px;height:90px;object-fit:cover;border-radius:10px;flex:none;background:var(--bg);}
-.pp-caption{font-size:13px;color:var(--navy-2);white-space:pre-wrap;line-height:1.4;margin-bottom:12px;max-height:120px;overflow-y:auto;}
+.pp-caption{font-size:13px;color:var(--navy-2);white-space:pre-wrap;line-height:1.4;margin-bottom:12px;max-height:120px;overflow-y:auto;}.pp-title{font-size:15px;font-weight:700;color:var(--navy);margin-bottom:6px;}
 .pp-status{display:inline-block;font-size:12px;font-weight:700;padding:4px 10px;border-radius:999px;margin-bottom:12px;}
 .pp-status.pendente{background:#FFF3D6;color:#8A6D1D;}
 .pp-status.aprovado{background:#E1F5E9;color:#1E7A46;}
@@ -769,10 +769,12 @@ function ppLoadCsvPosts(){
     return rows.map(function(r){
       var timestamp = r[0] || '';
       var caption = r[1] || '';
-      var link = r[2] || '';
+      var title = r[2] || '';
+      var link = r[3] || '';
       return {
-        id: ppHash(timestamp + '|' + caption + '|' + link),
+        id: ppHash(timestamp + '|' + caption + '|' + title + '|' + link),
         caption: caption,
+        title: title,
         link: link,
         embedUrl: ppDriveEmbedUrl(link)
       };
@@ -812,9 +814,11 @@ function renderPostsProntos(){
         ? '<img src="' + p.embedUrl + '" alt="">'
         : (p.link ? '<a class="pp-art-link" href="' + p.link + '" target="_blank" rel="noopener">Ver arte</a>' : '');
       var caption = p.caption ? p.caption.replace(/</g,'&lt;') : '';
+      var title = p.title ? p.title.replace(/</g,'&lt;') : '';
       return '<div class="pp-card">'
         + '<div class="pp-images">' + artHtml + '</div>'
         + '<div class="pp-status ' + status + '">' + statusLabel + '</div>'
+        + (title ? '<div class="pp-title">' + title + '</div>' : '')
         + '<div class="pp-caption">' + caption + '</div>'
         + '<div class="pp-actions">'
         + '<button class="pp-btn approve" onclick="ppSubmitDecision(\'' + p.id + '\',\'aprovado\')"' + (status==='aprovado'?' disabled':'') + '>Aprovar</button>'
