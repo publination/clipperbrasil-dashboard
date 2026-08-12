@@ -182,28 +182,10 @@ footer.foot{max-width:1280px;margin:20px auto 40px;padding:0 28px;color:var(--mu
     <h1 class="page-title">Saudabilidade do perfil @clipperbrasil</h1>
     <p class="page-sub">Dados oficiais do Instagram Insights · jan/2026 até <span id="periodEnd"></span></p>
 
-    <div class="grid grid-4">
-      <div class="card">
-        <div class="label">Taxa de engajamento média</div>
-        <div class="value" id="kpiEng">—</div>
-        <div class="sub" id="kpiEngSub"></div>
-        <div class="bench" id="kpiEngBench"></div>
-      </div>
-      <div class="card">
-        <div class="label">Alcance de Reels (views)</div>
-        <div class="value" id="kpiReels">—</div>
-        <div class="sub">participação de Reels nas visualizações da conta (90 dias)</div>
-      </div>
-      <div class="card">
-        <div class="label">Frequência de posts</div>
-        <div class="value" id="kpiFreq">—</div>
-        <div class="sub" id="kpiFreqSub"></div>
-      </div>
-      <div class="card">
-        <div class="label">Seguidores</div>
-        <div class="value" id="kpiFollowers">—</div>
-        <div class="sub">baseline registrado hoje — cresce 1 ponto/semana</div>
-      </div>
+    <div class="card" style="max-width:280px;">
+      <div class="label">Seguidores</div>
+      <div class="value" id="kpiFollowers">—</div>
+      <div class="sub">baseline registrado hoje — cresce 1 ponto/semana</div>
     </div>
 
     <div class="section">
@@ -352,22 +334,8 @@ function fmtDate(iso){
   return d+'/'+m+'/'+y;
 }
 
-const avgEng = postsForAvg.reduce((s,p)=>s+p.eng_rate,0)/postsForAvg.length;
-document.getElementById('kpiEng').textContent = avgEng.toFixed(2)+'%';
-const benchGood = DATA.benchmark.engagement_rate_good;
-const engEl = document.getElementById('kpiEng');
-if (avgEng < benchGood) engEl.classList.add('warn'); else engEl.classList.add('ok');
-document.getElementById('kpiEngSub').textContent = (avgEng < benchGood ? 'abaixo' : 'acima') + ' do benchmark do porte da conta';
-document.getElementById('kpiEngBench').textContent = 'Benchmark ' + DATA.benchmark.tier_label + ': ' + DATA.benchmark.engagement_rate_range[0] + '% –' + DATA.benchmark.engagement_rate_range[1] + '% (bom: ' + benchGood + '%+) · ' + DATA.benchmark.source;
-
-document.getElementById('kpiReels').textContent = DATA.insights_90d.views_by_type.reels + '%';
-
 const firstDate = DATA.posts.reduce((min,p)=> p.date<min?p.date:min, DATA.posts[0].date);
 const lastDate = DATA.posts.reduce((max,p)=> p.date>max?p.date:max, DATA.posts[0].date);
-const days = (new Date(lastDate) - new Date(firstDate))/86400000 + 1;
-const perWeek = (DATA.posts.length / days * 7).toFixed(1);
-document.getElementById('kpiFreq').textContent = perWeek + '/sem';
-document.getElementById('kpiFreqSub').textContent = DATA.posts.length + ' posts entre ' + fmtDate(firstDate) + ' e ' + fmtDate(lastDate);
 
 document.getElementById('kpiFollowers').textContent = FOLLOWERS.toLocaleString('pt-BR');
 
